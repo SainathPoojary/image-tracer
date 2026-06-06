@@ -1,623 +1,204 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Image to SVG Tracer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/potrace@2.1.8/potrace.min.js"></script>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image to SVG Tracer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Image → SVG Tracer</h1>
+      <p>// bitmap to vector, in-browser</p>
+    </header>
 
-  :root {
-    --bg: #0e0e0f;
-    --surface: #18181b;
-    --surface2: #222226;
-    --border: rgba(255,255,255,0.08);
-    --border-hover: rgba(255,255,255,0.15);
-    --text: #f0efe8;
-    --text-muted: #888884;
-    --text-dim: #555552;
-    --accent: #e8e0c8;
-    --accent-warm: #d4a853;
-    --accent-warm-bg: rgba(212,168,83,0.1);
-    --accent-warm-border: rgba(212,168,83,0.25);
-    --radius: 10px;
-    --radius-lg: 14px;
-  }
-
-  body {
-    font-family: 'Syne', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 3rem 1.5rem 5rem;
-  }
-
-  header {
-    text-align: center;
-    margin-bottom: 3rem;
-    animation: fadeUp 0.6s ease both;
-  }
-
-  header h1 {
-    font-size: 2rem;
-    font-weight: 600;
-    letter-spacing: -0.03em;
-    color: var(--text);
-    margin-bottom: 6px;
-  }
-
-  header p {
-    font-size: 14px;
-    color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
-  }
-
-  .container {
-    width: 100%;
-    max-width: 720px;
-  }
-
-  #drop-zone {
-    border: 1.5px dashed var(--border-hover);
-    border-radius: var(--radius-lg);
-    padding: 3rem 2rem;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-    margin-bottom: 1.5rem;
-    background: var(--surface);
-    animation: fadeUp 0.6s 0.1s ease both;
-  }
-
-  #drop-zone:hover, #drop-zone.drag-over {
-    border-color: var(--accent-warm);
-    background: rgba(212,168,83,0.04);
-  }
-
-  #drop-zone svg.icon {
-    width: 32px; height: 32px;
-    stroke: var(--text-muted);
-    margin-bottom: 12px;
-    display: block;
-    margin-left: auto; margin-right: auto;
-  }
-
-  #drop-zone h2 {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 4px;
-  }
-
-  #drop-zone p {
-    font-size: 13px;
-    color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
-  }
-
-  .panel {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-    animation: fadeUp 0.4s ease both;
-  }
-
-  .banner {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    background: var(--accent-warm-bg);
-    border: 0.5px solid var(--accent-warm-border);
-    border-radius: var(--radius);
-    font-size: 13px;
-    color: var(--accent-warm);
-    margin-bottom: 1.25rem;
-    font-family: 'DM Mono', monospace;
-  }
-
-  .banner svg { width: 16px; height: 16px; stroke: var(--accent-warm); flex-shrink: 0; }
-
-  .grid-2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  label.field-label {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
-    display: block;
-    margin-bottom: 6px;
-  }
-
-  label.field-label span {
-    color: var(--accent);
-    font-weight: 500;
-  }
-
-  .hint {
-    font-size: 11px;
-    color: var(--text-dim);
-    font-family: 'DM Mono', monospace;
-    margin-top: 4px;
-  }
-
-  input[type="range"] {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 4px;
-    background: var(--surface2);
-    border-radius: 4px;
-    outline: none;
-    cursor: pointer;
-  }
-
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px; height: 16px;
-    background: var(--accent-warm);
-    border-radius: 50%;
-    cursor: pointer;
-    transition: transform 0.15s;
-  }
-
-  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
-
-  input[type="color"] {
-    height: 38px;
-    width: 100%;
-    border: 0.5px solid var(--border-hover);
-    border-radius: var(--radius);
-    padding: 3px;
-    background: var(--surface2);
-    cursor: pointer;
-  }
-
-  select {
-    width: 100%;
-    height: 38px;
-    background: var(--surface2);
-    border: 0.5px solid var(--border-hover);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    padding: 0 10px;
-    cursor: pointer;
-    outline: none;
-  }
-
-  select:focus { border-color: var(--accent-warm); }
-
-  .invert-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    background: var(--surface2);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: 1rem;
-  }
-
-  .invert-row .info h3 { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
-  .invert-row .info p { font-size: 12px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
-
-  .toggle {
-    position: relative;
-    width: 42px; height: 24px;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-
-  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-
-  .toggle-track {
-    position: absolute; inset: 0;
-    background: var(--surface2);
-    border: 0.5px solid var(--border-hover);
-    border-radius: 24px;
-    transition: background 0.2s, border-color 0.2s;
-  }
-
-  .toggle-thumb {
-    position: absolute;
-    left: 4px; top: 4px;
-    width: 16px; height: 16px;
-    background: var(--text-muted);
-    border-radius: 50%;
-    transition: transform 0.2s, background 0.2s;
-  }
-
-  .toggle input:checked ~ .toggle-track { background: var(--accent-warm); border-color: var(--accent-warm); }
-  .toggle input:checked ~ .toggle-thumb { transform: translateX(18px); background: #0e0e0f; }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 18px;
-    border-radius: var(--radius);
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s;
-    border: 0.5px solid var(--border-hover);
-    background: transparent;
-    color: var(--text);
-  }
-
-  .btn:hover { background: var(--surface2); border-color: var(--text-muted); }
-  .btn:active { transform: scale(0.98); }
-
-  .btn-primary {
-    width: 100%;
-    background: var(--accent-warm);
-    border-color: var(--accent-warm);
-    color: #0e0e0f;
-    font-weight: 500;
-  }
-
-  .btn-primary:hover { background: #e0b55e; border-color: #e0b55e; }
-
-  .btn svg { width: 15px; height: 15px; stroke: currentColor; }
-
-  .preview-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  .preview-box {
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-  }
-
-  .preview-box-header {
-    padding: 8px 14px;
-    font-size: 12px;
-    color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
-    border-bottom: 0.5px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--surface);
-  }
-
-  .badge {
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 99px;
-    background: var(--accent-warm-bg);
-    color: var(--accent-warm);
-    border: 0.5px solid var(--accent-warm-border);
-    font-family: 'DM Mono', monospace;
-  }
-
-  .preview-box-body {
-    padding: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 180px;
-    background: var(--surface2);
-  }
-
-  .preview-box-body img {
-    max-width: 100%;
-    max-height: 200px;
-    object-fit: contain;
-    border-radius: 6px;
-  }
-
-  .actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .actions .btn { flex: 1; min-width: 140px; }
-
-  .feedback {
-    text-align: center;
-    font-size: 12px;
-    color: var(--accent-warm);
-    font-family: 'DM Mono', monospace;
-    margin-top: 10px;
-    height: 18px;
-  }
-
-  .status-text {
-    font-size: 13px;
-    color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 520px) {
-    .grid-2, .preview-grid { grid-template-columns: 1fr; }
-    header h1 { font-size: 1.5rem; }
-  }
-</style>
-</head>
-<body>
-
-<header>
-  <h1>Image → SVG Tracer</h1>
-  <p>// bitmap to vector, in-browser</p>
-</header>
-
-<div class="container">
-
-  <div id="drop-zone">
-    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-    </svg>
-    <h2>Drop image here or click to upload</h2>
-    <p>PNG · JPG · GIF · WebP — best on high-contrast images</p>
-    <input type="file" id="file-input" accept="image/*" style="display:none;">
-  </div>
-
-  <div id="controls-section" style="display:none;">
-
-    <div class="panel">
-      <div id="invert-banner" class="banner" style="display:none;">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2v1M4.93 4.93l.7.7M2 12h1M21 12h1M18.36 5.64l-.7.7"/><circle cx="12" cy="12" r="4"/></svg>
-        Dark image detected — <strong>Invert before tracing</strong> has been enabled automatically
+    <div class="container">
+      <div id="drop-zone">
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        <h2>Drop image here or click to upload</h2>
+        <p>PNG · JPG · GIF · WebP — best on high-contrast images</p>
+        <input
+          type="file"
+          id="file-input"
+          accept="image/*"
+          style="display: none"
+        />
       </div>
 
-      <div class="grid-2">
-        <div>
-          <label class="field-label">Threshold <span id="thresh-val">128</span></label>
-          <input type="range" id="threshold" min="1" max="255" value="128" step="1">
-          <p class="hint">lower = trace darker areas</p>
-        </div>
-        <div>
-          <label class="field-label">Smoothing <span id="smooth-val">1.0</span></label>
-          <input type="range" id="smoothing" min="0" max="1.33" value="1" step="0.1">
-          <p class="hint">higher = smoother curves</p>
-        </div>
-        <div>
-          <label class="field-label">Trace color</label>
-          <input type="color" id="trace-color" value="#000000">
-        </div>
-        <div>
-          <label class="field-label">Background</label>
-          <select id="bg-select">
-            <option value="transparent">Transparent</option>
-            <option value="white">White</option>
-            <option value="black">Black</option>
-          </select>
-        </div>
-      </div>
+      <div id="controls-section" style="display: none">
+        <div class="panel">
+          <div id="invert-banner" class="banner" style="display: none">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M9 18h6M10 22h4M12 2v1M4.93 4.93l.7.7M2 12h1M21 12h1M18.36 5.64l-.7.7"
+              />
+              <circle cx="12" cy="12" r="4" />
+            </svg>
+            Dark image detected — <strong>Invert before tracing</strong> has
+            been enabled automatically
+          </div>
 
-      <div class="invert-row">
-        <div class="info">
-          <h3>Invert before tracing</h3>
-          <p>flip dark/light — use when logo is white on dark bg</p>
-        </div>
-        <label class="toggle" aria-label="Invert toggle">
-          <input type="checkbox" id="invert-toggle">
-          <span class="toggle-track"></span>
-          <span class="toggle-thumb"></span>
-        </label>
-      </div>
+          <div class="grid-2">
+            <div>
+              <label class="field-label"
+                >Threshold <span id="thresh-val">128</span></label
+              >
+              <input
+                type="range"
+                id="threshold"
+                min="1"
+                max="255"
+                value="128"
+                step="1"
+              />
+              <p class="hint">lower = trace darker areas</p>
+            </div>
+            <div>
+              <label class="field-label"
+                >Smoothing <span id="smooth-val">1.0</span></label
+              >
+              <input
+                type="range"
+                id="smoothing"
+                min="0"
+                max="1.33"
+                value="1"
+                step="0.1"
+              />
+              <p class="hint">higher = smoother curves</p>
+            </div>
+            <div>
+              <label class="field-label">Trace color</label>
+              <input type="color" id="trace-color" value="#ffffff" />
+            </div>
+            <div>
+              <label class="field-label">Background</label>
+              <select id="bg-select">
+                <option value="transparent">Transparent</option>
+                <option value="white">White</option>
+                <option value="black">Black</option>
+              </select>
+            </div>
+          </div>
 
-      <button class="btn btn-primary" id="retrace-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-        Re-trace with these settings
-      </button>
-    </div>
+          <div class="invert-row">
+            <div class="info">
+              <h3>Invert before tracing</h3>
+              <p>flip dark/light — use when logo is white on dark bg</p>
+            </div>
+            <label class="toggle" aria-label="Invert toggle">
+              <input type="checkbox" id="invert-toggle" />
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </label>
+          </div>
 
-    <div class="preview-grid">
-      <div class="preview-box">
-        <div class="preview-box-header">original</div>
-        <div class="preview-box-body">
-          <img id="original-img" alt="Original image">
+          <button class="btn btn-primary" id="retrace-btn">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 .49-3.5" />
+            </svg>
+            Re-trace with these settings
+          </button>
         </div>
-      </div>
-      <div class="preview-box">
-        <div class="preview-box-header">
-          <span>vector output</span>
-          <span id="invert-badge" class="badge" style="display:none;">inverted</span>
+
+        <div class="preview-grid">
+          <div class="preview-box">
+            <div class="preview-box-header">original</div>
+            <div class="preview-box-body">
+              <img id="original-img" alt="Original image" />
+            </div>
+          </div>
+          <div class="preview-box">
+            <div class="preview-box-header">
+              <span>vector output</span>
+              <span id="invert-badge" class="badge" style="display: none"
+                >inverted</span
+              >
+            </div>
+            <div class="preview-box-body" id="svg-preview">
+              <span class="status-text">tracing...</span>
+            </div>
+          </div>
         </div>
-        <div class="preview-box-body" id="svg-preview">
-          <span class="status-text">tracing...</span>
+
+        <div class="actions" id="actions" style="display: none">
+          <button class="btn" id="download-svg">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download SVG
+          </button>
+          <button class="btn" id="copy-svg">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path
+                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+              />
+            </svg>
+            Copy SVG code
+          </button>
+          <button class="btn" id="change-img">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            New image
+          </button>
         </div>
+        <div class="feedback" id="feedback"></div>
       </div>
     </div>
 
-    <div class="actions" id="actions" style="display:none;">
-      <button class="btn" id="download-svg">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download SVG
-      </button>
-      <button class="btn" id="copy-svg">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copy SVG code
-      </button>
-      <button class="btn" id="change-img">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        New image
-      </button>
-    </div>
-    <div class="feedback" id="feedback"></div>
-  </div>
-
-</div>
-
-<script>
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('file-input');
-const controlsSection = document.getElementById('controls-section');
-const originalImg = document.getElementById('original-img');
-const svgPreview = document.getElementById('svg-preview');
-const actions = document.getElementById('actions');
-const threshSlider = document.getElementById('threshold');
-const threshVal = document.getElementById('thresh-val');
-const smoothSlider = document.getElementById('smoothing');
-const smoothVal = document.getElementById('smooth-val');
-const traceColorInput = document.getElementById('trace-color');
-const bgSelect = document.getElementById('bg-select');
-const invertToggle = document.getElementById('invert-toggle');
-const invertBanner = document.getElementById('invert-banner');
-const invertBadge = document.getElementById('invert-badge');
-const feedback = document.getElementById('feedback');
-
-let currentFile = null;
-let currentSvgStr = '';
-
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault(); dropZone.classList.remove('drag-over');
-  const f = e.dataTransfer.files[0];
-  if (f && f.type.startsWith('image/')) handleFile(f);
-});
-fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
-threshSlider.addEventListener('input', () => { threshVal.textContent = threshSlider.value; });
-smoothSlider.addEventListener('input', () => { smoothVal.textContent = parseFloat(smoothSlider.value).toFixed(1); });
-invertToggle.addEventListener('change', () => {
-  invertBadge.style.display = invertToggle.checked ? 'inline' : 'none';
-});
-
-document.getElementById('retrace-btn').addEventListener('click', () => { if (currentFile) traceImage(currentFile); });
-
-document.getElementById('change-img').addEventListener('click', () => {
-  currentFile = null; currentSvgStr = '';
-  controlsSection.style.display = 'none'; dropZone.style.display = 'block';
-  fileInput.value = ''; invertToggle.checked = false;
-  invertBanner.style.display = 'none'; invertBadge.style.display = 'none';
-  feedback.textContent = '';
-});
-
-document.getElementById('download-svg').addEventListener('click', () => {
-  if (!currentSvgStr) return;
-  const blob = new Blob([currentSvgStr], { type: 'image/svg+xml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'traced.svg'; a.click();
-  URL.revokeObjectURL(url);
-});
-
-document.getElementById('copy-svg').addEventListener('click', () => {
-  if (!currentSvgStr) return;
-  navigator.clipboard.writeText(currentSvgStr).then(() => {
-    feedback.textContent = '✓ copied to clipboard';
-    setTimeout(() => { feedback.textContent = ''; }, 2500);
-  });
-});
-
-function getAvgBrightness(imageData) {
-  const d = imageData.data; let total = 0, count = 0;
-  for (let i = 0; i < d.length; i += 16) {
-    total += 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]; count++;
-  }
-  return total / count;
-}
-
-function handleFile(file) {
-  currentFile = file;
-  const reader = new FileReader();
-  reader.onload = e => {
-    originalImg.src = e.target.result;
-    dropZone.style.display = 'none';
-    controlsSection.style.display = 'block';
-    actions.style.display = 'none';
-    svgPreview.innerHTML = '<span class="status-text">tracing...</span>';
-
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width; canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const brightness = getAvgBrightness(imageData);
-      if (brightness < 100) {
-        invertBanner.style.display = 'flex';
-        invertToggle.checked = true;
-        invertBadge.style.display = 'inline';
-      } else {
-        invertBanner.style.display = 'none';
-      }
-      traceImage(file);
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function traceImage(file) {
-  actions.style.display = 'none';
-  svgPreview.innerHTML = '<span class="status-text">tracing...</span>';
-  const threshold = parseInt(threshSlider.value);
-  const alphaMax = parseFloat(smoothSlider.value);
-  const color = traceColorInput.value;
-  const bg = bgSelect.value;
-  const shouldInvert = invertToggle.checked;
-
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width; canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-
-      if (shouldInvert) {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const d = imageData.data;
-        for (let i = 0; i < d.length; i += 4) { d[i] = 255-d[i]; d[i+1] = 255-d[i+1]; d[i+2] = 255-d[i+2]; }
-        ctx.putImageData(imageData, 0, 0);
-      }
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      try {
-        if (typeof Potrace === 'undefined') throw new Error('Potrace not loaded');
-        Potrace.loadImageData(imageData);
-        Potrace.setParameter({ threshold, alphamax: alphaMax, optcurve: true, opttolerance: 0.2 });
-        let svgStr = Potrace.getSVG(1);
-        svgStr = svgStr.replace(/fill="#[0-9a-fA-F]{6}"/g, `fill="${color}"`).replace(/fill="black"/gi, `fill="${color}"`);
-        const bgStyle = bg === 'transparent' ? 'transparent' : bg;
-        svgStr = svgStr.replace('<svg ', `<svg style="background:${bgStyle};" `);
-        currentSvgStr = svgStr;
-        showResult(svgStr);
-      } catch(err) {
-        svgPreview.innerHTML = `<span class="status-text" style="color:#e24b4a;">tracing failed: ${err.message}</span>`;
-      }
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function showResult(svgStr) {
-  const blob = new Blob([svgStr], { type: 'image/svg+xml' });
-  const url = URL.createObjectURL(blob);
-  svgPreview.innerHTML = `<img src="${url}" style="max-width:100%;max-height:200px;object-fit:contain;border-radius:6px;" alt="Vector output">`;
-  actions.style.display = 'flex';
-}
-</script>
-</body>
+    <script type="module" src="/main.js"></script>
+  </body>
 </html>
