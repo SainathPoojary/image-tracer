@@ -121,13 +121,19 @@ function traceImage(file) {
 
       // Apply invert + threshold into a clean B&W canvas before tracing.
       // potrace-js hardcodes threshold at 128, so we binarise manually first.
+      // Use Math.max(r,g,b) (HSV "value") instead of luminance so that
+      // saturated colours like blue/green are correctly separated from dark
+      // backgrounds. Invert is applied as a binary flip on the dark/light
+      // decision rather than an RGB channel flip, which handles cases like
+      // blue-on-dark where the inverted colour still has high luminance.
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const d = imageData.data;
       for (let i = 0; i < d.length; i += 4) {
-        let r = d[i], g = d[i + 1], b = d[i + 2];
-        if (shouldInvert) { r = 255 - r; g = 255 - g; b = 255 - b; }
-        const lum = 0.2126 * r + 0.7153 * g + 0.0721 * b;
-        const v = lum < threshold ? 0 : 255;
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        const chMax = Math.max(r, g, b);
+        let dark = chMax < threshold;
+        if (shouldInvert) dark = !dark;
+        const v = dark ? 0 : 255;
         d[i] = v; d[i + 1] = v; d[i + 2] = v;
       }
       ctx.putImageData(imageData, 0, 0);
