@@ -47,7 +47,7 @@ document.getElementById('retrace-btn').addEventListener('click', () => { if (cur
 
 document.getElementById('change-img').addEventListener('click', () => {
   currentFile = null; currentSvgStr = '';
-  controlsSection.style.display = 'none'; dropZone.style.display = 'block';
+  controlsSection.style.display = 'none'; dropZone.style.display = 'flex';
   fileInput.value = ''; invertToggle.checked = false;
   invertBanner.style.display = 'none'; invertBadge.style.display = 'none';
   feedback.textContent = '';
@@ -83,7 +83,7 @@ function handleFile(file) {
   reader.onload = e => {
     originalImg.src = e.target.result;
     dropZone.style.display = 'none';
-    controlsSection.style.display = 'block';
+    controlsSection.style.display = 'grid';
     actions.style.display = 'none';
     svgPreview.innerHTML = '<span class="status-text">tracing...</span>';
 

@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Image to SVG Tracer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
@@ -14,35 +15,38 @@
   <body>
     <header>
       <h1>Image → SVG Tracer</h1>
-      <p>// bitmap to vector, in-browser</p>
+      <span class="header-sep"></span>
+      <p>bitmap to vector, in-browser</p>
     </header>
 
     <div class="container">
       <div id="drop-zone">
-        <svg
-          class="icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="17 8 12 3 7 8" />
-          <line x1="12" y1="3" x2="12" y2="15" />
-        </svg>
-        <h2>Drop image here or click to upload</h2>
-        <p>PNG · JPG · GIF · WebP · or paste (⌘V) — best on high-contrast images</p>
-        <input
-          type="file"
-          id="file-input"
-          accept="image/*"
-          style="display: none"
-        />
+        <div class="drop-inner">
+          <svg
+            class="icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <h2>Drop image here or click to upload</h2>
+          <p>PNG · JPG · GIF · WebP · or paste (⌘V)</p>
+          <input
+            type="file"
+            id="file-input"
+            accept="image/*"
+            style="display: none"
+          />
+        </div>
       </div>
 
       <div id="controls-section" style="display: none">
-        <div class="panel">
+        <div class="col-left">
           <div id="invert-banner" class="banner" style="display: none">
             <svg
               viewBox="0 0 24 24"
@@ -56,8 +60,7 @@
               />
               <circle cx="12" cy="12" r="4" />
             </svg>
-            Dark image detected — <strong>Invert before tracing</strong> has
-            been enabled automatically
+            <span>Dark image detected — <strong>Invert before tracing</strong> has been enabled automatically</span>
           </div>
 
           <div class="grid-2">
@@ -130,7 +133,7 @@
           </button>
         </div>
 
-        <div class="preview-grid">
+        <div class="col-right">
           <div class="preview-box">
             <div class="preview-box-header">original</div>
             <div class="preview-box-body">
@@ -148,7 +151,6 @@
               <span class="status-text">tracing...</span>
             </div>
           </div>
-        </div>
 
         <div class="actions" id="actions" style="display: none">
           <button class="btn" id="download-svg">
@@ -196,6 +198,7 @@
           </button>
         </div>
         <div class="feedback" id="feedback"></div>
+        </div>
       </div>
     </div>
 
