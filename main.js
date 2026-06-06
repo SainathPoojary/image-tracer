@@ -29,6 +29,14 @@ dropZone.addEventListener('drop', e => {
   if (f && f.type.startsWith('image/')) handleFile(f);
 });
 fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+document.addEventListener('paste', e => {
+  const item = [...e.clipboardData.items].find(i => i.type.startsWith('image/'));
+  if (!item) return;
+  const file = item.getAsFile();
+  if (file) handleFile(file);
+});
+
 threshSlider.addEventListener('input', () => { threshVal.textContent = threshSlider.value; });
 smoothSlider.addEventListener('input', () => { smoothVal.textContent = parseFloat(smoothSlider.value).toFixed(1); });
 invertToggle.addEventListener('change', () => {
@@ -119,13 +127,6 @@ function traceImage(file) {
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(img, 0, 0);
 
-      // Apply invert + threshold into a clean B&W canvas before tracing.
-      // potrace-js hardcodes threshold at 128, so we binarise manually first.
-      // Use Math.max(r,g,b) (HSV "value") instead of luminance so that
-      // saturated colours like blue/green are correctly separated from dark
-      // backgrounds. Invert is applied as a binary flip on the dark/light
-      // decision rather than an RGB channel flip, which handles cases like
-      // blue-on-dark where the inverted colour still has high luminance.
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const d = imageData.data;
       for (let i = 0; i < d.length; i += 4) {
@@ -147,7 +148,6 @@ function traceImage(file) {
           opttolerance: 0.2
         });
         let svgStr = getSVG(paths, 1);
-        // Fix hardcoded 846x352 dimensions in potrace-js getSVG with actual image size
         svgStr = svgStr.replace(
           /width="846" height="352"/,
           `width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}"`
